@@ -1,4 +1,5 @@
 import yaml
+from modules.Chunker import Chunker
 from pathlib import Path
 
 def load_env():
@@ -7,17 +8,24 @@ def load_env():
     with open(env_path, 'r') as file:
         config = yaml.safe_load(file)
     # Use .get() with an empty dictionary as default for robustness
-
-    print ("Model name", config["model_name"])
-
-
+    return config
 
 def main():
     
+    rag_param = load_env()
+    print ("Chunk Size", rag_param["chunk_size"])
+    print ("Model name", rag_param["model_name"])
+    print ("Model types",rag_param["document_types"])
 
-    load_env()
-    ##Creates text chunk based on tokens for processing
-    #docs = chunker.document_chunker(directory_path='/home/paborsan/Documents/RAG_Data',
+    
+    mdl_chunker = Chunker()
+
+    mdl_chunker.process_paragraphs()
+    #
+    # 
+    # Creates text chunk based on tokens for processing    
+    # 
+    # docs = chunker.document_chunker(directory_path='/home/paborsan/Documents/RAG_Data',
     #                        model_name='BAAI/bge-small-en-v1.5',
     #                        chunk_size=256)
     #
