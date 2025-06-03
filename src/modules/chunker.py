@@ -80,8 +80,6 @@ class Chunker:
         Args:
             text (str): The input text to chunk.
             delimiter_regex (re.Pattern): The compiled regex pattern to split the text by.
-            max_tokens (int): The maximum number of tokens allowed per chunk.
-            get_token_count_func (callable): A function (e.g., self._get_token_count) to calculate token count.
 
         Returns:
             list[str]: A list of text chunks.
@@ -93,7 +91,20 @@ class Chunker:
 
         chunked_tokens = self.slice_array_by_size_loop(tokenized, self.chunk_delimiter)
 
-        return current_chunk
+        return self.assign_tokens (chunked_tokens)
+
+    
+    def assign_tokens (self, chunked_tokens):
+
+        final_chunks = {}
+
+        for chunk in chunked_tokens:
+            chunk_id = str(uuid.uuid4())
+            final_chunks[chunk_id] = {"text": " ".join(chunk)}  # Initialize metadata as dict
+        
+        print (final_chunks)
+
+        return final_chunks
     
     def process_paragraphs(self):
         """
