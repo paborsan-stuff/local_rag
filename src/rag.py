@@ -12,6 +12,13 @@ def load_env():
     return config
 
 
+def fetch_text_emb_model(model_name):
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+
+    tokenizer.save_pretrained("tmp/tokenizer")
+    model.save_pretrained("tmp/embedding")
+
 def main():
 
     rag_param = load_env()
@@ -25,11 +32,8 @@ def main():
 
     model_name = "BAAI/bge-small-en-v1.5"
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name)
+    fetch_text_emb_model(model_name)
 
-    tokenizer.save_pretrained("model/tokenizer")
-    model.save_pretrained("model/embedding")
     
     #
     #
