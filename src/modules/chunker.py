@@ -100,6 +100,9 @@ class Chunker:
 
         for chunk in chunked_tokens:
             chunk_id = str(uuid.uuid4())
+            #
+            #  TODO: Do we need more keys?
+            #
             final_chunks[chunk_id] = {"text": " ".join(chunk)}  # Initialize metadata as dict
         
         print (final_chunks)

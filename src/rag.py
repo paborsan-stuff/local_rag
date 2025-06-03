@@ -1,7 +1,7 @@
 import yaml
 from modules.Chunker import Chunker
 from pathlib import Path
-
+from transformers import AutoModel, AutoTokenizer
 
 def load_env():
 
@@ -19,9 +19,18 @@ def main():
     print("Model name", rag_param["model_name"])
     print("Model types", rag_param["document_types"])
 
-    mdl_chunker = Chunker(tokenizer = "BAAI/bge-small-en-v1.5")
+    mdl_chunker = Chunker(rag_param["model_name"])
 
     mdl_chunker.process_paragraphs()
+
+    model_name = "BAAI/bge-small-en-v1.5"
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+
+    tokenizer.save_pretrained("model/tokenizer")
+    model.save_pretrained("model/embedding")
+    
     #
     #
     # Creates text chunk based on tokens for processing
