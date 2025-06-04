@@ -1,7 +1,18 @@
 import yaml
+import numpy as np
+import os
 from modules.Chunker import Chunker
+from modules.EmbeddingGenerator import EmbeddingGenerator
 from pathlib import Path
 from transformers import AutoModel, AutoTokenizer
+from huggingface_hub import hf_hub_download
+
+TEST_PARAGRAPHS = """Basement home theater seating in black leather, includes three reclining seats with cup holders and storage compartments.
+Designed for ultimate comfort and convenience during movie nights. 
+
+Manufactured by Luxe Seating. Dimensions per seat: 36"W x 40"D x 40"H.
+"""
+
 
 def load_env():
 
@@ -19,22 +30,101 @@ def fetch_text_emb_model(model_name):
     tokenizer.save_pretrained("tmp/tokenizer")
     model.save_pretrained("tmp/embedding")
 
+
+def fetch_llm_model():
+
+    # Target directory and model info
+    target_dir = "tmp/llm"
+    os.makedirs(target_dir, exist_ok=True)
+
+    filename = "mistral-7b-instruct-v0.2.Q3_K_L.gguf"
+    local_path = os.path.join(target_dir, filename)
+
+    if not os.path.exists(local_path):
+        print("Downloading model...")
+        downloaded_path = hf_hub_download(
+            repo_id="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+            filename=filename,
+            cache_dir=target_dir,
+        )
+        # Move from cache to final destination (optional)
+        if downloaded_path != local_path:
+            os.rename(downloaded_path, local_path)
+    else:
+        print(f"Model already exists at: {local_path}")
+
+
+def compute_matches(vector_store, query_str_embedding, top_k=3):
+    """
+    This function takes in a vector store dictionary, a query string, and an int 'top_k'.
+    It computes embeddings for the query string and then calculates the cosine similarity against every chunk embedding in the dictionary.
+    The top_k matches are returned based on the highest similarity scores.
+    """
+    # Get the embedding for the query string
+    scores = {}
+
+    # Calculate the cosine similarity between the query embedding and each chunk's embedding
+    for chunk_id, chunk_embedding in vector_store.items():
+        chunk_embedding_array = np.array(chunk_embedding)
+        # Normalize embeddings to unit vectors for cosine similarity calculation
+        norm_query = np.linalg.norm(query_str_embedding)
+        norm_chunk = np.linalg.norm(chunk_embedding_array)
+        if norm_query == 0 or norm_chunk == 0:
+            # Avoid division by zero
+            score = 0
+        else:
+            score = np.dot(chunk_embedding_array, query_str_embedding) / (
+                norm_query * norm_chunk
+            )
+        # Store the score along with a reference to both the document and the chunk
+        scores[(chunk_id, chunk_id)] = score
+
+    # Sort scores and return the top_k results
+    sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)[
+        :top_k
+    ]
+    top_results = [
+        (doc_id, chunk_id, score) for ((doc_id, chunk_id), score) in sorted_scores
+    ]
+
+    return top_results
+
+
 def main():
 
     rag_param = load_env()
+
     print("Chunk Size", rag_param["chunk_size"])
     print("Model name", rag_param["model_name"])
     print("Model types", rag_param["document_types"])
 
-    mdl_chunker = Chunker(rag_param["model_name"])
+    mdl_chunker = Chunker(rag_param["model_name"], input_text=TEST_PARAGRAPHS)
 
-    mdl_chunker.process_paragraphs()
+    tokenized_chunks = mdl_chunker.process_paragraphs()
+
+    print("tokenized_chunks", tokenized_chunks)
 
     model_name = "BAAI/bge-small-en-v1.5"
 
     fetch_text_emb_model(model_name)
 
+    fetch_llm_model()
     
+    emb_mdl = EmbeddingGenerator("tmp")
+
+    vectorized_chunks = emb_mdl.create_vector_store(tokenized_chunks)
+
+    print("vectorized_chunks", vectorized_chunks)
+
+    query_str = "This is a dummy query"
+
+    query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))
+
+    print(query_str_embedding)
+    # def compute_matches(vector_store, query_str, query_str_embedding, top_k):
+
+    compute_matches(vectorized_chunks, query_str_embedding)
+
     #
     #
     # Creates text chunk based on tokens for processing
@@ -48,6 +138,7 @@ def main():
     # matches = indexer.Indexer.compute_matches(vector_store=vec_store,
     #            query_str="Pablo",
     #            top_k=3)
+    #
     # print(matches)
 
 
