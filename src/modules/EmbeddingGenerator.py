@@ -25,8 +25,9 @@ class EmbeddingGenerator:
             # Load the embedding model from the specified path
             self.model = AutoModel.from_pretrained(os.path.join(model_path, "embedding"))
             # Set the model to evaluation mode (important for inference)
-            self.model.eval()
-            print(f"Successfully loaded tokenizer and model from: {model_path}")
+            #self.model.eval()
+            #print(f"Successfully loaded tokenizer and model from: {model_path}")
+
         except Exception as e:
             print(f"Error loading model or tokenizer from '{model_path}': {e}")
             print("Please ensure the paths are correct and the model files exist.")
@@ -58,7 +59,7 @@ class EmbeddingGenerator:
         # Convert the PyTorch tensor to a Python list of floats
         return embeddings.tolist()
 
-    def create_vector_store(self, doc_store: dict) -> dict:
+    def create_vector_store(self, token_chunks):
         """
         Creates a simple in-memory vector store from a document store.
         Each chunk's text is converted into an embedding.
@@ -70,12 +71,11 @@ class EmbeddingGenerator:
         Returns:
             dict: A dictionary representing the vector store (doc_id: {chunk_id: embedding_vector}).
         """
-        vector_store = {}
-        for doc_id, chunks in doc_store.items():
-            doc_vectors = {}
-            for chunk_id, chunk_dict in chunks.items():
-                # Generate an embedding for each chunk of text using the instance's method
-                doc_vectors[chunk_id] = self.compute_embeddings(chunk_dict.get("text"))
-            # Store the document's chunk embeddings mapped by their chunk UUIDs
-            vector_store[doc_id] = doc_vectors
-        return vector_store
+        embedding_result = {}
+
+        for chunk_id, chunk_dict in token_chunks.items():
+            # Generate an embedding for each chunk of text using the instance's method
+            embedding_result[chunk_id] = self.compute_embeddings(chunk_dict.get("text"))
+        # Store the document's chunk embeddings mapped by their chunk UUIDs
+        
+        return embedding_result

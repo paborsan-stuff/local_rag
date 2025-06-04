@@ -3,21 +3,12 @@ import os
 import uuid
 from transformers import AutoTokenizer, AutoModel
 
-TEST_PARAGRAPHS = """Basement home theater seating in black leather, includes three reclining seats with cup holders and storage compartments.
-Designed for ultimate comfort and convenience during movie nights. 
-
-Manufactured by Luxe Seating. Dimensions per seat: 36"W x 40"D x 40"H."""
-
-CHUNK_WORD_SECTION_LIST_FORMATTER = "{word},"
-
 DEFAULT_CHUNK_SIZE_IN_TOKEN = 1024
-
-
 class Chunker:
 
     PARAGRAPH_SEPARATOR = "\n\n"
 
-    def __init__(self, tokenizer=None, chunk_delimiter=3, paragraph_separator_regex="", chunk_word_delimiter_regex=""):
+    def __init__(self, tokenizer=None, chunk_delimiter=3, paragraph_separator_regex="", chunk_word_delimiter_regex="", input_text = ""):
         """
         Initializes the Chunker with a Hugging Face tokenizer, a target chunk size,
         and configurable regex delimiters for text splitting.
@@ -31,9 +22,11 @@ class Chunker:
             chunk_word_delimiter_regex (str, optional): A regex pattern to split paragraphs into smaller sections (e.g., words).
                                                         If None, uses DEFAULT_WORD_DELIMITER_REGEX.
         """
+        if input_text == None:
+            raise TypeError  ("Bad init, input text is empty")
 
+        self.input = input_text
         self.chunk_delimiter = chunk_delimiter
-
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
 
     def _get_token_count(self, text: str) -> int:
@@ -72,6 +65,21 @@ class Chunker:
         Implement if we have too
         """
         pass
+    
+    def assign_tokens (self, chunked_tokens):
+
+        final_chunks = {}
+
+        for chunk in chunked_tokens:
+            chunk_id = str(uuid.uuid4())
+            #
+            #  TODO: Do we need more keys?
+            #
+            final_chunks[chunk_id] = {"text": " ".join(chunk)}  # Initialize metadata as dict
+        
+        print (final_chunks)
+
+        return final_chunks
 
     def _paragraph_chunker(self, paragraph: str, delimiter: str):
         """
@@ -92,22 +100,6 @@ class Chunker:
         chunked_tokens = self.slice_array_by_size_loop(tokenized, self.chunk_delimiter)
 
         return self.assign_tokens (chunked_tokens)
-
-    
-    def assign_tokens (self, chunked_tokens):
-
-        final_chunks = {}
-
-        for chunk in chunked_tokens:
-            chunk_id = str(uuid.uuid4())
-            #
-            #  TODO: Do we need more keys?
-            #
-            final_chunks[chunk_id] = {"text": " ".join(chunk)}  # Initialize metadata as dict
-        
-        print (final_chunks)
-
-        return final_chunks
     
     def process_paragraphs(self):
         """
@@ -120,6 +112,10 @@ class Chunker:
         Returns:
             list[str]: A list of processed text chunks.
         """
-        paragraphs = TEST_PARAGRAPHS.split(self.PARAGRAPH_SEPARATOR)
+        final_chunks = {}
+
+        paragraphs = self.input.split(self.PARAGRAPH_SEPARATOR)
         for paragraph in paragraphs:
-            self._paragraph_chunker(paragraph, " ")
+            final_chunks.update(self._paragraph_chunker(paragraph, " "))
+
+        return final_chunks
