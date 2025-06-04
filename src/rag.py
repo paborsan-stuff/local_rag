@@ -1,15 +1,18 @@
 import yaml
+import numpy as np
+import os
 from modules.Chunker import Chunker
 from modules.EmbeddingGenerator import EmbeddingGenerator
 from pathlib import Path
 from transformers import AutoModel, AutoTokenizer
-import numpy as np
+from huggingface_hub import hf_hub_download
 
 TEST_PARAGRAPHS = """Basement home theater seating in black leather, includes three reclining seats with cup holders and storage compartments.
 Designed for ultimate comfort and convenience during movie nights. 
 
 Manufactured by Luxe Seating. Dimensions per seat: 36"W x 40"D x 40"H.
 """
+
 
 def load_env():
 
@@ -27,7 +30,31 @@ def fetch_text_emb_model(model_name):
     tokenizer.save_pretrained("tmp/tokenizer")
     model.save_pretrained("tmp/embedding")
 
-def compute_matches(vector_store, query_str_embedding, top_k = 3):
+
+def fetch_llm_model():
+
+    # Target directory and model info
+    target_dir = "tmp/llm"
+    os.makedirs(target_dir, exist_ok=True)
+
+    filename = "mistral-7b-instruct-v0.2.Q3_K_L.gguf"
+    local_path = os.path.join(target_dir, filename)
+
+    if not os.path.exists(local_path):
+        print("Downloading model...")
+        downloaded_path = hf_hub_download(
+            repo_id="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+            filename=filename,
+            cache_dir=target_dir,
+        )
+        # Move from cache to final destination (optional)
+        if downloaded_path != local_path:
+            os.rename(downloaded_path, local_path)
+    else:
+        print(f"Model already exists at: {local_path}")
+
+
+def compute_matches(vector_store, query_str_embedding, top_k=3):
     """
     This function takes in a vector store dictionary, a query string, and an int 'top_k'.
     It computes embeddings for the query string and then calculates the cosine similarity against every chunk embedding in the dictionary.
@@ -46,15 +73,22 @@ def compute_matches(vector_store, query_str_embedding, top_k = 3):
             # Avoid division by zero
             score = 0
         else:
-            score = np.dot(chunk_embedding_array, query_str_embedding) / (norm_query * norm_chunk)
+            score = np.dot(chunk_embedding_array, query_str_embedding) / (
+                norm_query * norm_chunk
+            )
         # Store the score along with a reference to both the document and the chunk
         scores[(chunk_id, chunk_id)] = score
 
     # Sort scores and return the top_k results
-    sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)[:top_k]
-    top_results = [(doc_id, chunk_id, score) for ((doc_id, chunk_id), score) in sorted_scores]
+    sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)[
+        :top_k
+    ]
+    top_results = [
+        (doc_id, chunk_id, score) for ((doc_id, chunk_id), score) in sorted_scores
+    ]
 
     return top_results
+
 
 def main():
 
@@ -64,7 +98,7 @@ def main():
     print("Model name", rag_param["model_name"])
     print("Model types", rag_param["document_types"])
 
-    mdl_chunker = Chunker(rag_param["model_name"], input_text = TEST_PARAGRAPHS)
+    mdl_chunker = Chunker(rag_param["model_name"], input_text=TEST_PARAGRAPHS)
 
     tokenized_chunks = mdl_chunker.process_paragraphs()
 
@@ -74,7 +108,9 @@ def main():
 
     fetch_text_emb_model(model_name)
 
-    emb_mdl = EmbeddingGenerator ("tmp")
+    fetch_llm_model()
+    
+    emb_mdl = EmbeddingGenerator("tmp")
 
     vectorized_chunks = emb_mdl.create_vector_store(tokenized_chunks)
 
@@ -85,9 +121,9 @@ def main():
     query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))
 
     print(query_str_embedding)
-    #def compute_matches(vector_store, query_str, query_str_embedding, top_k):
-    
-    compute_matches (vectorized_chunks, query_str_embedding)
+    # def compute_matches(vector_store, query_str, query_str_embedding, top_k):
+
+    compute_matches(vectorized_chunks, query_str_embedding)
 
     #
     #
