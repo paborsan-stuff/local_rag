@@ -12,14 +12,19 @@ Designed for ultimate comfort and convenience during movie nights.
 
 Manufactured by Luxe Seating. Dimensions per seat: 36"W x 40"D x 40"H.
 """
-
-
-
-
-def main():
+def setup():
     rag_param = load_env()
    
     print_rag_param (rag_param)
+
+    # Fetch models if not already downloaded
+
+    fetch_text_emb_model(rag_param["embedding_model"])
+    fetch_llm_model()
+    return rag_param
+
+def main():
+    rag_param = setup()
 
     # Load all paragraphs from all text files in TestData
     docs, file_names = load_paragraphs_from_folder("TestData")
@@ -31,24 +36,25 @@ def main():
         #print (doc)
         mdl_chunker = Chunker(rag_param["embedding_model"], input_text=doc)
         chunks = mdl_chunker.process_paragraphs()
-        print(chunks)
-        for chunk_id, chunk_text in chunks.items():
-            key = f"{file_names[idx]}_{idx}_{chunk_id}"
-            all_tokenized_chunks[key] = chunk_text
+        #for chunk_id, chunk_text in chunks.items():
+        #    key = f"{file_names[idx]}_{idx}_{chunk_id}"
+        #    all_tokenized_chunks[key] = chunk_text
 
-        doc_id_map[idx] = (file_names[idx], idx)
+        doc_id_map[idx] = chunks
+
+    print (doc_id_map)
 
     #print("tokenized_chunks", all_tokenized_chunks)
     #print(doc_id_map)
-    # Fetch models if not already downloaded
-    
-#    model_name = "BAAI/bge-small-en-v1.5"
-#    fetch_text_emb_model(model_name)
-#    fetch_llm_model()
-#    
-#    emb_mdl = EmbeddingGenerator("tmp")
-#    vectorized_chunks = emb_mdl.create_vector_store(all_tokenized_chunks)
-#    print("vectorized_chunks", vectorized_chunks)
+
+    emb_mdl = EmbeddingGenerator("tmp")
+    vector_store = {}
+    for doc_id, chunks in doc_id_map.items():
+        print("chunks", chunks)
+        vector_store[doc_id] = emb_mdl.create_vector_store(chunks)
+
+    print("vector_store", vector_store)
+
 #
 #    query_str = "I am looking to a place to watch movies with my family, what do you recommend?"
 #    query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))

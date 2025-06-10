@@ -3,6 +3,7 @@ from pathlib import Path
 from transformers import AutoModel, AutoTokenizer
 from huggingface_hub import hf_hub_download
 import yaml
+import os
 
 def load_env():
 
