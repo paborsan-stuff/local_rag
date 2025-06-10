@@ -15,8 +15,16 @@ retrieved_docs = """
 Wall-mounted electric fireplace with realistic LED flames and heat settings. Features a black glass frame and remote control for easy operation. Ideal for adding warmth and ambiance. Manufactured by Hearth & Home. Dimensions: 50"W x 6"D x 21"H.
 """
 
+# Set gpu_layers to the number of layers to offload to GPU. Set to 0 if no GPU acceleration is available on your system.
+llm = Llama(
+  model_path="./tmp/llm/mistral-7b-instruct-v0.2.Q4_K_M.gguf",  # Download the model file first
+  n_ctx=32768,  # The max sequence length to use - note that longer sequence lengths require much more resources
+  n_threads=8,            # The number of CPU threads to use, tailor to your system and the resulting performance
+  n_gpu_layers=35         # The number of layers to offload to GPU, if you have GPU acceleration available
+)
 
-llm = Llama(model_path="tmp/llm/mistral-7b-instruct-v0.2.Q3_K_L.gguf", n_gpu_layers=1)
+
+llm = Llama(model_path="/home/paborsan/Documents/Projects/local_rag/local_rag/src/tmp/llm/mistral-7b-instruct-v0.2.Q3_K_L.gguf", n_gpu_layers=1)
 instance_model = LLMAdapter(llm)
 
 llm_prompt = LLMAdapter.construct_prompt(system_prompt=system_prompt,
