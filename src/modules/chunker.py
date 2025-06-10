@@ -40,7 +40,6 @@ class Chunker:
             int: The number of tokens.
         """
         # The `encode` method returns a list of token IDs
-        print (self.tokenizer.tokenize(text))
         return len(self.tokenizer.tokenize(text))
     
     @staticmethod
@@ -76,8 +75,6 @@ class Chunker:
             #  TODO: Do we need more keys?
             #
             final_chunks[chunk_id] = {"text": " ".join(chunk)}  # Initialize metadata as dict
-        
-        print (final_chunks)
 
         return final_chunks
 
