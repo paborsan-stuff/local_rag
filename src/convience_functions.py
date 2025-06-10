@@ -67,10 +67,9 @@ def find_db_vector_best_dot_score(vector_store, query_str_embedding, top_k=3):
             score = np.dot(chunk_embedding_array, query_str_embedding) / (
                 norm_query * norm_chunk
             )
-            print (score)
 
         if best_score <= score:
-            score = best_score
+            best_score = score
 
         
     return best_score

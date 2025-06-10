@@ -27,7 +27,7 @@ class Chunker:
 
         self.input = input_text
         self.chunk_delimiter = chunk_delimiter
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
+        self.tokenizer = tokenizer
 
     def _get_token_count(self, text: str) -> int:
         """

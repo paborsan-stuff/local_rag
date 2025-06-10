@@ -28,7 +28,6 @@ class LLMAdapter:
         self.default_stop_sequences = default_stop_sequences if default_stop_sequences is not None else ["Q:", "\n"]
         self.default_echo = default_echo
         self.default_stream = default_stream
-        print("LLMInteractionHandler initialized.")
 
     @staticmethod
     def construct_prompt(system_prompt: str, retrieved_docs: str, user_query: str) -> str:
@@ -44,14 +43,7 @@ class LLMAdapter:
         Returns:
             str: The complete, formatted prompt string.
         """
-        prompt = f"""{system_prompt}
-
-Here is the retrieved context:
-{retrieved_docs}
-
-Here is the user's query:
-{user_query}
-"""
+        prompt = f"""{system_prompt}Here is the retrieved context:{retrieved_docs}Here is the user's query:{user_query}"""
         return prompt
 
     def stream_and_buffer_response(self,
