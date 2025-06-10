@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from modules.chunker import Chunker
 from modules.EmbeddingGenerator import EmbeddingGenerator
 from transformers import AutoModel, AutoTokenizer
@@ -39,10 +40,12 @@ def setup():
     return rag_param
 
 def get_query_vector_store_db(emb_mdl, doc_id_map, use_cache):
-    vector_store = {}
+    #vector_store = {}
 
     if use_cache == False:
-        vector_store = create_vector_store(emb_mdl, doc_id_map, vector_store)
+        #vector_store = create_vector_store(emb_mdl, doc_id_map, vector_store)
+        vector_store = emb_mdl.create_vector_store(doc_id_map)
+        os.makedirs(os.path.dirname("vdb/vector_db.json"), exist_ok=True)
         with open('vdb/vector_db.json', 'w') as f:
             json.dump(vector_store, f)
     else: 
@@ -50,7 +53,8 @@ def get_query_vector_store_db(emb_mdl, doc_id_map, use_cache):
             try:
                 dbjson = json.load(f)
                 if not dbjson:
-                    vector_store = create_vector_store(emb_mdl, doc_id_map, vector_store)
+                    #vector_store = create_vector_store(emb_mdl, doc_id_map, vector_store)
+                    vector_store = emb_mdl.create_vector_store(doc_id_map)
                 else:
                     print("Vector db file cached!")
                     vector_store = dbjson
@@ -59,15 +63,6 @@ def get_query_vector_store_db(emb_mdl, doc_id_map, use_cache):
                 return None
     return vector_store
 
-def create_vector_store(emb_mdl, doc_id_map, vector_store):
-
-    vector_store = {}
-
-    for doc_id, chunks in doc_id_map.items():
-        print("chunks", chunks)
-        vector_store[doc_id] = emb_mdl.create_vector_store(chunks)
-
-    return vector_store
 
 def main():
 
@@ -85,40 +80,25 @@ def main():
         mdl_chunker = Chunker(rag_param["embedding_model"], input_text=doc)
         chunks = mdl_chunker.process_paragraphs()
         doc_id_map[file_name] = chunks
-
+ 
     vector_store = get_query_vector_store_db(emb_mdl, doc_id_map, args.use_cache)
 
     if not vector_store:
         raise ValueError("Empty Vector data base")
     
-    query_str = (
-        "I am looking to a place to watch movies with my family, what do you recommend?"
-    )
+    query_str = ("ceramic")
 
     query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))
 
-    for doc_id, chunks in doc_id_map.items():
-        print("chunks", chunks)
-        vector_store[doc_id] = emb_mdl.create_vector_store(chunks)
-        matches = find_db_vector_best_dot_score(
-            vector_store[doc_id], query_str_embedding
-        )
-        print(doc_id, matches)
-
-
-
-#
-#    query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))
-#    print(query_str_embedding)
-#
-#    matches = find_db_vector_best_dot_score(vectorized_chunks, query_str_embedding)
-#    print("Top matches:", matches)
+    matches = find_db_vector_best_dot_score(vector_store, query_str_embedding, top_k=3)
+    print(matches)
 #
 #    # Gather retrieved docs from top matches
-#    retrieved_docs = "\n".join(
-#        [all_tokenized_chunks[doc_id] for (doc_id, chunk_id, score) in matches]
-#    )
+    retrieved_docs = "\n".join(
+        [all_tokenized_chunks[doc_id] for (doc_id, chunk_id, score) in matches]
+    )
 
+    print(retrieved_docs)
 #    # Prepare LLM prompt
 #    system_prompt = """
 # You are an intelligent search engine. You will be provided with some retrieved context, as well as the users query.
