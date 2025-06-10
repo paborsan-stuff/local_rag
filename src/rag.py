@@ -1,12 +1,12 @@
-import yaml
 import numpy as np
-import os
-from modules.Chunker import Chunker
+from modules.chunker import Chunker
 from modules.EmbeddingGenerator import EmbeddingGenerator
 from pathlib import Path
 from transformers import AutoModel, AutoTokenizer
 from huggingface_hub import hf_hub_download
-
+from llama_cpp import Llama
+from modules.LLMAdapter import LLMAdapter
+from convience_functions import load_env, fetch_text_emb_model, fetch_llm_model, compute_matches, print_rag_param, load_paragraphs_from_folder
 TEST_PARAGRAPHS = """Basement home theater seating in black leather, includes three reclining seats with cup holders and storage compartments.
 Designed for ultimate comfort and convenience during movie nights. 
 
@@ -14,132 +14,72 @@ Manufactured by Luxe Seating. Dimensions per seat: 36"W x 40"D x 40"H.
 """
 
 
-def load_env():
-
-    env_path = Path("env/config.yaml")
-    with open(env_path, "r") as file:
-        config = yaml.safe_load(file)
-    # Use .get() with an empty dictionary as default for robustness
-    return config
-
-
-def fetch_text_emb_model(model_name):
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name)
-
-    tokenizer.save_pretrained("tmp/tokenizer")
-    model.save_pretrained("tmp/embedding")
-
-
-def fetch_llm_model():
-
-    # Target directory and model info
-    target_dir = "tmp/llm"
-    os.makedirs(target_dir, exist_ok=True)
-
-    filename = "mistral-7b-instruct-v0.2.Q3_K_L.gguf"
-    local_path = os.path.join(target_dir, filename)
-
-    if not os.path.exists(local_path):
-        print("Downloading model...")
-        downloaded_path = hf_hub_download(
-            repo_id="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
-            filename=filename,
-            cache_dir=target_dir,
-        )
-        # Move from cache to final destination (optional)
-        if downloaded_path != local_path:
-            os.rename(downloaded_path, local_path)
-    else:
-        print(f"Model already exists at: {local_path}")
-
-
-def compute_matches(vector_store, query_str_embedding, top_k=3):
-    """
-    This function takes in a vector store dictionary, a query string, and an int 'top_k'.
-    It computes embeddings for the query string and then calculates the cosine similarity against every chunk embedding in the dictionary.
-    The top_k matches are returned based on the highest similarity scores.
-    """
-    # Get the embedding for the query string
-    scores = {}
-
-    # Calculate the cosine similarity between the query embedding and each chunk's embedding
-    for chunk_id, chunk_embedding in vector_store.items():
-        chunk_embedding_array = np.array(chunk_embedding)
-        # Normalize embeddings to unit vectors for cosine similarity calculation
-        norm_query = np.linalg.norm(query_str_embedding)
-        norm_chunk = np.linalg.norm(chunk_embedding_array)
-        if norm_query == 0 or norm_chunk == 0:
-            # Avoid division by zero
-            score = 0
-        else:
-            score = np.dot(chunk_embedding_array, query_str_embedding) / (
-                norm_query * norm_chunk
-            )
-        # Store the score along with a reference to both the document and the chunk
-        scores[(chunk_id, chunk_id)] = score
-
-    # Sort scores and return the top_k results
-    sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)[
-        :top_k
-    ]
-    top_results = [
-        (doc_id, chunk_id, score) for ((doc_id, chunk_id), score) in sorted_scores
-    ]
-
-    return top_results
 
 
 def main():
-
     rag_param = load_env()
+   
+    print_rag_param (rag_param)
 
-    print("Chunk Size", rag_param["chunk_size"])
-    print("Model name", rag_param["model_name"])
-    print("Model types", rag_param["document_types"])
+    # Load all paragraphs from all text files in TestData
+    docs, file_names = load_paragraphs_from_folder("TestData")
+    print("Number of paragraphs:", len(docs))
 
-    mdl_chunker = Chunker(rag_param["model_name"], input_text=TEST_PARAGRAPHS)
+    all_tokenized_chunks = {}
+    doc_id_map = {}
+    for idx, doc in enumerate(docs):
+        #print (doc)
+        mdl_chunker = Chunker(rag_param["embedding_model"], input_text=doc)
+        chunks = mdl_chunker.process_paragraphs()
+        print(chunks)
+        for chunk_id, chunk_text in chunks.items():
+            key = f"{file_names[idx]}_{idx}_{chunk_id}"
+            all_tokenized_chunks[key] = chunk_text
 
-    tokenized_chunks = mdl_chunker.process_paragraphs()
+        doc_id_map[idx] = (file_names[idx], idx)
 
-    print("tokenized_chunks", tokenized_chunks)
-
-    model_name = "BAAI/bge-small-en-v1.5"
-
-    fetch_text_emb_model(model_name)
-
-    fetch_llm_model()
+    #print("tokenized_chunks", all_tokenized_chunks)
+    #print(doc_id_map)
+    # Fetch models if not already downloaded
     
-    emb_mdl = EmbeddingGenerator("tmp")
+#    model_name = "BAAI/bge-small-en-v1.5"
+#    fetch_text_emb_model(model_name)
+#    fetch_llm_model()
+#    
+#    emb_mdl = EmbeddingGenerator("tmp")
+#    vectorized_chunks = emb_mdl.create_vector_store(all_tokenized_chunks)
+#    print("vectorized_chunks", vectorized_chunks)
+#
+#    query_str = "I am looking to a place to watch movies with my family, what do you recommend?"
+#    query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))
+#    print(query_str_embedding)
+#
+#    matches = compute_matches(vectorized_chunks, query_str_embedding)
+#    print("Top matches:", matches)
+#
+#    # Gather retrieved docs from top matches
+#    retrieved_docs = "\n".join(
+#        [all_tokenized_chunks[doc_id] for (doc_id, chunk_id, score) in matches]
+#    )
 
-    vectorized_chunks = emb_mdl.create_vector_store(tokenized_chunks)
-
-    print("vectorized_chunks", vectorized_chunks)
-
-    query_str = "This is a dummy query"
-
-    query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))
-
-    print(query_str_embedding)
-    # def compute_matches(vector_store, query_str, query_str_embedding, top_k):
-
-    compute_matches(vectorized_chunks, query_str_embedding)
-
-    #
-    #
-    # Creates text chunk based on tokens for processing
-    #
-    # docs = chunker.document_chunker(directory_path='/home/paborsan/Documents/RAG_Data',
-    #                        model_name='BAAI/bge-small-en-v1.5',
-    #                        chunk_size=256)
-    #
-    # vec_store = indexer.create_vector_store(docs)
-    #
-    # matches = indexer.Indexer.compute_matches(vector_store=vec_store,
-    #            query_str="Pablo",
-    #            top_k=3)
-    #
-    # print(matches)
+#    # Prepare LLM prompt
+#    system_prompt = """
+#You are an intelligent search engine. You will be provided with some retrieved context, as well as the users query.
+#
+#Your job is to understand the request, and answer based on the retrieved context.
+#"""
+#
+#    llm = Llama(model_path="tmp/llm/mistral-7b-instruct-v0.2.Q3_K_L.gguf", n_gpu_layers=1)
+#    instance_model = LLMAdapter(llm)
+#
+#    llm_prompt = LLMAdapter.construct_prompt(
+#        system_prompt=system_prompt,
+#        retrieved_docs=retrieved_docs,
+#        user_query=query_str
+#    )
+#
+#    response = instance_model.stream_and_buffer_response(base_prompt=llm_prompt, max_tokens=800)
+#    print("LLM Response:", response)
 
 
 if __name__ == "__main__":
