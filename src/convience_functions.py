@@ -45,19 +45,19 @@ def fetch_llm_model():
         print(f"Model already exists at: {local_path}")
 
 
-def compute_matches(vector_store, query_str_embedding, top_k=3):
+def find_db_vector_best_dot_score(vector_store, query_str_embedding, top_k=3):
     """
     This function takes in a vector store dictionary, a query string, and an int 'top_k'.
     It computes embeddings for the query string and then calculates the cosine similarity against every chunk embedding in the dictionary.
     The top_k matches are returned based on the highest similarity scores.
     """
     # Get the embedding for the query string
-    scores = {}
-
+    best_score = -1
     # Calculate the cosine similarity between the query embedding and each chunk's embedding
     for chunk_id, chunk_embedding in vector_store.items():
         chunk_embedding_array = np.array(chunk_embedding)
         # Normalize embeddings to unit vectors for cosine similarity calculation
+
         norm_query = np.linalg.norm(query_str_embedding)
         norm_chunk = np.linalg.norm(chunk_embedding_array)
         if norm_query == 0 or norm_chunk == 0:
@@ -67,18 +67,14 @@ def compute_matches(vector_store, query_str_embedding, top_k=3):
             score = np.dot(chunk_embedding_array, query_str_embedding) / (
                 norm_query * norm_chunk
             )
-        # Store the score along with a reference to both the document and the chunk
-        scores[(chunk_id, chunk_id)] = score
+            print (score)
 
-    # Sort scores and return the top_k results
-    sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)[
-        :top_k
-    ]
-    top_results = [
-        (doc_id, chunk_id, score) for ((doc_id, chunk_id), score) in sorted_scores
-    ]
-
-    return top_results
+        if best_score <= score:
+            score = best_score
+        elif best_score == -1:
+            raise ("Something very wrong has happended")
+        
+    return best_score
 
 
 def load_paragraphs_from_folder(folder="TestData"):

@@ -6,7 +6,7 @@ from transformers import AutoModel, AutoTokenizer
 from huggingface_hub import hf_hub_download
 from llama_cpp import Llama
 from modules.LLMAdapter import LLMAdapter
-from convience_functions import load_env, fetch_text_emb_model, fetch_llm_model, compute_matches, print_rag_param, load_paragraphs_from_folder
+from convience_functions import load_env, fetch_text_emb_model, fetch_llm_model, find_db_vector_best_dot_score, print_rag_param, load_paragraphs_from_folder
 TEST_PARAGRAPHS = """Basement home theater seating in black leather, includes three reclining seats with cup holders and storage compartments.
 Designed for ultimate comfort and convenience during movie nights. 
 
@@ -24,7 +24,9 @@ def setup():
     return rag_param
 
 def main():
+    
     rag_param = setup()
+    emb_mdl = EmbeddingGenerator("tmp")
 
     # Load all paragraphs from all text files in TestData
     docs, file_names = load_paragraphs_from_folder("TestData")
@@ -32,7 +34,7 @@ def main():
 
     all_tokenized_chunks = {}
     doc_id_map = {}
-    for idx, doc in enumerate(docs):
+    for doc, file_name in zip(docs, file_names):
         #print (doc)
         mdl_chunker = Chunker(rag_param["embedding_model"], input_text=doc)
         chunks = mdl_chunker.process_paragraphs()
@@ -40,14 +42,9 @@ def main():
         #    key = f"{file_names[idx]}_{idx}_{chunk_id}"
         #    all_tokenized_chunks[key] = chunk_text
 
-        doc_id_map[idx] = chunks
+        doc_id_map[file_name] = chunks
 
-    print (doc_id_map)
 
-    #print("tokenized_chunks", all_tokenized_chunks)
-    #print(doc_id_map)
-
-    emb_mdl = EmbeddingGenerator("tmp")
     vector_store = {}
     for doc_id, chunks in doc_id_map.items():
         print("chunks", chunks)
@@ -55,12 +52,21 @@ def main():
 
     print("vector_store", vector_store)
 
-#
-#    query_str = "I am looking to a place to watch movies with my family, what do you recommend?"
+    query_str = "I am looking to a place to watch movies with my family, what do you recommend?"
+
+    query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))
+
+
+    for doc_id, chunks in doc_id_map.items():
+        print("chunks", chunks)
+        vector_store[doc_id] = emb_mdl.create_vector_store(chunks)
+        matches = find_db_vector_best_dot_score(vector_store[doc_id], query_str_embedding)
+        print (doc_id, matches)
+#   
 #    query_str_embedding = np.array(emb_mdl.compute_embeddings(query_str))
 #    print(query_str_embedding)
 #
-#    matches = compute_matches(vectorized_chunks, query_str_embedding)
+#    matches = find_db_vector_best_dot_score(vectorized_chunks, query_str_embedding)
 #    print("Top matches:", matches)
 #
 #    # Gather retrieved docs from top matches
