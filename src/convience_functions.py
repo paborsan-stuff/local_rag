@@ -71,8 +71,7 @@ def find_db_vector_best_dot_score(vector_store, query_str_embedding, top_k=3):
 
         if best_score <= score:
             score = best_score
-        elif best_score == -1:
-            raise ("Something very wrong has happended")
+
         
     return best_score
 
