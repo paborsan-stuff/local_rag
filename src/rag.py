@@ -150,5 +150,12 @@ def main():
     print ("Model response is", response)
 
 
+def answer_query(prompt: str) -> str:
+    """
+    Función que procesa el prompt usando el pipeline RAG y retorna una respuesta.
+    Actualmente, esta es una implementación de ejemplo.
+    """
+    return f"Respuesta a: {prompt}"
+
 if __name__ == "__main__":
     main()
