@@ -150,5 +150,13 @@ def main():
     print ("Model response is", response)
 
 
+def answer_query(prompt: str) -> str:
+    """
+    Función para testear la conexión.
+    Esta versión está hardcodeada para devolver "Testing".
+    """
+    # Esta función se invoca desde api_server.py para obtener la respuesta que se enviará a la UI.
+    return "Testing"
+
 if __name__ == "__main__":
     main()
