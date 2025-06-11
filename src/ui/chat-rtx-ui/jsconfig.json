@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]      // 👈 tells tooling that "@/…" means "src/…"
+    }
+  }
+}
