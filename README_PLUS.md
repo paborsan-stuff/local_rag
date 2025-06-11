@@ -1,41 +1,41 @@
 # README_PLUS
 
-## Descripción General
-Este documento resume y proporciona instrucciones detalladas para ejecutar la aplicación, desde el arranque del servidor Python (FastAPI) hasta la ejecución del front-end en DesktopAssistant utilizando npm.
+## Overview
+This document provides a summary and detailed instructions for running the application, from starting the Python (FastAPI) server to running the front-end in DesktopAssistant via npm.
 
-## Flujo de Ejecución del Sistema
-1. **Backend (Servidor Python)**
-   - Se arranca con `python api_server.py`. Este servidor utiliza FastAPI para exponer el endpoint `/api/ask`.
-   - El endpoint en `api_server.py` recibe solicitudes de la UI, valida el prompt y llama a la función `answer_query` en `src/rag.py` para procesar y generar la respuesta.
-2. **Interfaz de Usuario (DesktopAssistant)**
-   - La UI se encuentra en la carpeta `DesktopAssistant` y se ejecuta usando `npm run dev` mediante Vite.
-   - El componente `PromptInput.jsx` captura el prompt del usuario y envía una solicitud POST al endpoint `/api/ask`.
-   - La respuesta del backend, recibida en `OutputDisplay.jsx`, se muestra en la caja de chat para el usuario.
+## System Execution Flow
+1. **Backend (Python Server)**
+   - Start the server using `python api_server.py`. This server uses FastAPI to expose the `/api/ask` endpoint.
+   - The endpoint in `api_server.py` receives requests from the UI, validates the prompt, and calls the `answer_query` function in `src/rag.py` to process and generate the response.
+2. **User Interface (DesktopAssistant)**
+   - The UI is located in the `DesktopAssistant` folder and runs using `npm run dev` through Vite.
+   - The `PromptInput.jsx` component captures the user prompt and sends a POST request to the `/api/ask` endpoint.
+   - The response from the backend is received in `OutputDisplay.jsx` and displayed in the chat box for the user.
 
-## Instrucciones para Ejecutar la Aplicación
-1. **Ejecutar el Servidor Python:**
-   - Asegúrate de tener instaladas todas las dependencias de Python y configurado el entorno correctamente.
-   - Desde la raíz del proyecto, ejecuta:
+## Instructions to Run the Application
+1. **Run the Python Server:**
+   - Ensure all Python dependencies are installed and the environment is properly configured.
+   - From the project root, execute:
      ```bash
      python api_server.py
      ```
-   - Esto levantará el servidor en `http://localhost:8000`.
+   - This will start the server at `http://localhost:8000`.
 
-2. **Ejecutar la Interfaz de Usuario:**
-   - Abre una nueva terminal y navega al directorio `DesktopAssistant`:
+2. **Run the User Interface:**
+   - Open a new terminal and navigate to the `DesktopAssistant` directory:
      ```bash
      cd DesktopAssistant && npm run dev
      ```
-   - La aplicación se levantará y podrá ser visualizada en el navegador en `http://localhost:3000`.
+   - The application will start and can be viewed in the browser at `http://localhost:3000`.
 
-## Comentarios Adicionales en el Código
+## Additional Code Comments
 - **api_server.py:**  
-  - Define el endpoint `/api/ask` que recibe y procesa el prompt de la UI, y llama a `answer_query` en `src/rag.py` para manejar la lógica de respuesta.
+  - Defines the `/api/ask` endpoint that receives and processes the prompt from the UI, and calls `answer_query` in `src/rag.py` to handle the response logic.
 - **src/rag.py:**  
-  - Actualmente, la función `answer_query` está hardcodeada para devolver "Testing", facilitando la verificación de la conexión entre la UI y el backend.
+  - Currently, the `answer_query` function is hardcoded to return "Testing", allowing easy verification of the connection between the UI and backend.
 - **DesktopAssistant/src/components/PromptInput.jsx:**  
-  - Captura el input del usuario y realiza una solicitud fetch a `/api/ask`, enviando el prompt al backend.
+  - Captures the user input and sends a fetch request to `/api/ask`, passing the prompt to the backend.
 - **DesktopAssistant/vite.config.js:**  
-  - Configura un proxy que redirige las peticiones con el prefijo `/api` a `http://localhost:8000`, permitiendo la comunicación correcta entre el front-end y el servidor Python.
+  - Configures a proxy that redirects requests with the `/api` prefix to `http://localhost:8000`, ensuring proper communication between the front-end and the Python server.
 
-Este documento complementa el README principal y sirve como una guía rápida tanto para entender la integración entre los componentes del sistema como para probar la conexión completa desde el servidor Python hasta la interfaz en React.
+This document complements the main README and serves as a quick guide to understand the integration between system components and to test the complete connection from the Python server to the React interface.

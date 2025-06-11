@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+transformers
+torch
+numpy
+pyyaml
+huggingface-hub
+llama-cpp-python

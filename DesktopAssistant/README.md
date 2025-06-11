@@ -1,44 +1,44 @@
 # DesktopAssistant
 
-DesktopAssistant es una interfaz web de escritorio construida con React y Tailwind CSS. Inspirada en el look and feel de la web de Apple, esta aplicación es limpia, moderna y minimalista. **Nota:** La interfaz es solamente para escritorio y no es responsive.
+DesktopAssistant is a desktop web interface built with React and Tailwind CSS. Inspired by Apple's design aesthetic, this application is clean, modern, and minimalist. **Note:** The interface is designed exclusively for desktop and is not responsive.
 
-## Requisitos
+## Requirements
 
-- Node.js (última versión LTS)
+- Node.js (Latest LTS version)
 - npm
 
-## Instalación
+## Installation
 
-Desde el directorio raíz del proyecto:
+From the project root directory:
 ```bash
 cd DesktopAssistant
 npm install
 ```
 
-## Ejecución en Desarrollo
+## Development Execution
 
 ```bash
 npm run dev
 ```
 
-Esto iniciará la aplicación en [http://localhost:3000](http://localhost:3000).
+This will start the application at [http://localhost:3000](http://localhost:3000).
 
-## Construir para Producción
+## Production Build
 
 ```bash
 npm run build
 ```
 
-## Notas
+## Notes
 
-- Se utiliza Vite como herramienta de construcción.
-- Tailwind CSS está configurado vía PostCSS.
-- La aplicación realiza una llamada a la API en `/api/ask` al enviar el prompt y muestra la respuesta.
+- Vite is used as the build tool.
+- Tailwind CSS is configured through PostCSS.
+- The application calls the API at `/api/ask` when submitting a prompt and displays the response.
 
-## Cómo probar la UI
+## How to Test the UI
 
-Para probar la interfaz de usuario, ejecuta el siguiente comando en la raíz del proyecto:
+To test the user interface, run the following command from the project root:
 ```bash
 npm run dev
 ```
-Luego, abre tu navegador y visita [http://localhost:3000](http://localhost:3000) para ver la aplicación.
+Then, open your browser and navigate to [http://localhost:3000](http://localhost:3000) to view the application.
