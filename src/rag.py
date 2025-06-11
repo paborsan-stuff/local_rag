@@ -150,5 +150,30 @@ def main():
     print ("Model response is", response)
 
 
+def process_prompt(prompt: str) -> str:
+    """
+    Process the provided prompt using RAG logic and return the model's response.
+    """
+    rag_param = setup()
+    # Para demostración, se simula la recuperación de contexto.
+    retrieval_text = "Simulated retrieved context for prompt: " + prompt
+
+    system_prompt_assist = """
+    You are an intelligent search engine. You will be provided with some retrieved context, as well as the user's query.
+    Your job is to understand the request, and answer based on the retrieved context.
+    """
+    
+    llm = Llama(model_path="tmp/llm/mistral-7b-instruct-v0.2.Q3_K_L.gguf", n_gpu_layers=1)
+    instance_model = LLMAdapter(llm)
+    
+    llm_prompt = instance_model.construct_prompt(
+        system_prompt=system_prompt_assist,
+        retrieved_docs=retrieval_text,
+        user_query=prompt
+    )
+    
+    response = instance_model.stream_and_buffer_response(base_prompt=llm_prompt, max_tokens=300)
+    return response
+
 if __name__ == "__main__":
     main()

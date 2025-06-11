@@ -34,15 +34,15 @@ export default function ChatRTXUI() {
 
   return (
     <div className="w-full max-w-md p-8">
-      <h1 className="text-2xl font-semibold mb-4">Buscar con RAG</h1>
+      <h1 className="text-3xl font-bold mb-6">Experiencia RAG</h1>
       <input 
-         className="w-full border border-gray-300 p-2 rounded mb-4"
+         className="w-full border border-gray-300 p-3 rounded-md shadow-sm mb-4"
          type="text" 
          placeholder="Ingresa tu prompt" 
          value={prompt} 
          onChange={(e) => setPrompt(e.target.value)} />
       <button 
-         className="w-full bg-blue-500 text-white p-2 rounded mb-4" 
+         className="w-full bg-black text-white p-2 rounded-md mb-4 hover:bg-gray-800" 
          onClick={handleSubmit}>
          Enviar
       </button>
