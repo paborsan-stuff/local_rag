@@ -16,7 +16,7 @@ app.add_middleware(
 async def ask(request: Request):
     body = await request.json()
     prompt = body.get("prompt")
-    # El prompt recibido proviene de la UI en DesktopAssistant/src/components/PromptInput.jsx
+    # The prompt received comes from the UI at DesktopAssistant/src/components/PromptInput.jsx
     if not prompt:
         return {"error": "No se proporcionó prompt."}
     answer = answer_query(prompt)

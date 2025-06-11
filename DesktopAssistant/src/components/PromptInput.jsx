@@ -7,7 +7,7 @@ function PromptInput({ onResponse }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!prompt.trim()) return
-    // Enviar el prompt al backend en '/api/ask' que invoca answer_query de rag.py
+    // Send the prompt to the backend at '/api/ask' which calls answer_query from rag.py
     setLoading(true)
     try {
       const res = await fetch('/api/ask', {

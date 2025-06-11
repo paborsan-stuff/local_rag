@@ -9,7 +9,7 @@ import Footer from './components/Footer'
 function App() {
   const [responseText, setResponseText] = useState("")
 
-  // Función callback que actualiza el estado con la respuesta recibida del backend
+  // Callback function that updates the state with the response received from the backend
   const handleResponse = (res) => {
     setResponseText(res)
   }
