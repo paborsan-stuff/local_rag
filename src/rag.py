@@ -24,6 +24,16 @@ def setup(setup_rag):
 
     return rag_param
 
+
+def answer_query(prompt: str) -> str:
+    """
+    Function for testing the connection.
+    This version is hardcoded to return "Testing".
+    """
+    # This function is called from api_server.py to get the response that will be sent to the UI.
+    return "Testing"
+
+
 def main():
 
     project_root = os.path.dirname(os.path.abspath(__file__))  # …/src
