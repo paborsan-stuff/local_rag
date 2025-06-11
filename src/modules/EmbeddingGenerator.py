@@ -59,8 +59,8 @@ class EmbeddingGenerator:
         # Convert the PyTorch tensor to a Python list of floats
         return embeddings.tolist()
 
-    def create_vector_store(self, doc_id_map):
-    #def create_vector_store(self, token_chunks):
+
+    def create_vector_store(self, token_chunks):
         """
         Creates a simple in-memory vector store from a document store.
         Each chunk's text is converted into an embedding.
@@ -72,16 +72,11 @@ class EmbeddingGenerator:
         Returns:
             dict: A dictionary representing the vector store (doc_id: {chunk_id: embedding_vector}).
         """
-        vector_store = {}
+        embedding_result = {}
 
-        for doc_id, chunks in doc_id_map.items():
-                        
-            embedding_result = {}
-
-            for chunk_id, chunk_dict in chunks.items():
-                # Generate an embedding for each chunk of text using the instance's method
-                embedding_result[chunk_id] = self.compute_embeddings(chunk_dict.get("text"))
-
-            vector_store[doc_id] = embedding_result
-
-        return vector_store
+        for chunk_id, chunk_dict in token_chunks.items():
+            # Generate an embedding for each chunk of text using the instance's method
+            embedding_result[chunk_id] = self.compute_embeddings(chunk_dict.get("text"))
+        # Store the document's chunk embeddings mapped by their chunk UUIDs
+        
+        return embedding_result
