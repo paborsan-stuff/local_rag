@@ -1,8 +1,12 @@
 Local RAG System API
-This project outlines the development and deployment of an entirely local Retrieval Augmented Generation (RAG) system from scratch. The system is packaged into a containerized Flask application for easy deployment. It's designed to be practical and inspired by real-life use cases.
+This project outlines the development and deployment of an entirely local Retrieval Augmented Generation (RAG) system from scratch. The system is packaged as a FastAPI application for easy deployment. It's designed to be practical and inspired by real-life use cases.
 The implementation utilizes a modular framework with four main components that can be easily swapped out: Text data, Embedding model, LLM (Large Language Model), and Vector store.
 Project Setup
 To set up and run the project, you will need the application code, the prepared data, the embedding model and tokenizer, the vector store, the document store, and the LLM.
+To run the application, start the backend by executing:
+  python api_server.py
+Then, in a separate terminal, navigate to the DesktopAssistant directory and run:
+  npm run dev
 
 1.Prepare the Data:
 The system is designed to handle a wide array of document types.
