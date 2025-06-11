@@ -59,6 +59,7 @@ class EmbeddingGenerator:
         # Convert the PyTorch tensor to a Python list of floats
         return embeddings.tolist()
 
+
     def create_vector_store(self, token_chunks):
         """
         Creates a simple in-memory vector store from a document store.
