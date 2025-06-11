@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 export default function ChatRTXUI() {
   const [selectedOption, setSelectedOption] = useState("option1");
   const [systemPath, setSystemPath] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [response, setResponse] = useState("");
 
   const handleRadioChange = (value) => {
     setSelectedOption(value);
@@ -18,51 +20,37 @@ export default function ChatRTXUI() {
   };
 
   const handleSubmit = () => {
-    console.log("Selected Option:", selectedOption);
-    console.log("System Path:", systemPath);
+    fetch('/api/rag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt })
+    })
+    .then(res => res.json())
+    .then(data => {
+      setResponse(data.response);
+    })
+    .catch(error => console.error("Error:", error));
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto">
-      <Card className="rounded-2xl shadow-md">
-        <CardContent className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Chat RTX Configuration</h2>
-          <div className="mb-4">
-            <Label className="block mb-2">Choose an option:</Label>
-            <RadioGroup
-              value={selectedOption}
-              onValueChange={handleRadioChange}
-              className="space-y-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="option1" id="option1" />
-                <Label htmlFor="option1">Option 1</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="option2" id="option2" />
-                <Label htmlFor="option2">Option 2</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="option3" id="option3" />
-                <Label htmlFor="option3">Option 3</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div className="mb-4">
-            <Label htmlFor="systemPath" className="block mb-2">System Path:</Label>
-            <Input
-              id="systemPath"
-              type="text"
-              value={systemPath}
-              onChange={handlePathChange}
-              placeholder="Enter your system path"
-            />
-          </div>
-
-          <Button className="w-full" onClick={handleSubmit}>Submit</Button>
-        </CardContent>
-      </Card>
+    <div className="w-full max-w-md p-8">
+      <h1 className="text-2xl font-semibold mb-4">Buscar con RAG</h1>
+      <input 
+         className="w-full border border-gray-300 p-2 rounded mb-4"
+         type="text" 
+         placeholder="Ingresa tu prompt" 
+         value={prompt} 
+         onChange={(e) => setPrompt(e.target.value)} />
+      <button 
+         className="w-full bg-blue-500 text-white p-2 rounded mb-4" 
+         onClick={handleSubmit}>
+         Enviar
+      </button>
+      {response && (
+        <div className="p-4 border border-gray-200 rounded">
+          Respuesta: {response}
+        </div>
+      )}
     </div>
   );
 }
