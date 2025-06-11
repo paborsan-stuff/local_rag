@@ -152,10 +152,10 @@ def main():
 
 def answer_query(prompt: str) -> str:
     """
-    Función que procesa el prompt usando el pipeline RAG y retorna una respuesta.
-    Actualmente, esta es una implementación de ejemplo.
+    Función para testear la conexión.
+    Esta versión está hardcodeada para devolver "Testing".
     """
-    return f"Respuesta a: {prompt}"
+    return "Testing"
 
 if __name__ == "__main__":
     main()
