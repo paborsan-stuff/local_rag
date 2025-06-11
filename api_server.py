@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from src.rag import answer_query
+from rag import answer_query
 
 app = FastAPI()
 
