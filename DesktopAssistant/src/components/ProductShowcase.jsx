@@ -11,12 +11,12 @@ const products = [
 
 function ProductShowcase() {
   return (
-    <section className="py-12 bg-gray-100">
+    <section className="py-12 bg-gray-100" style={{ backgroundColor: '#212121' }}>
       <div className="max-w-6xl mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-8">Our Features</h2>
         <div className="grid grid-cols-3 gap-6">
           {products.map(product => (
-            <div key={product.id} className="bg-white p-4 rounded-lg shadow">
+            <div key={product.id} className="p-4 rounded-lg shadow">
               <div className="w-full h-40 bg-gray-300 mb-4 flex items-center justify-center">
                 <span>Image</span>
               </div>
