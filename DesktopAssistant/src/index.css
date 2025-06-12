@@ -1,3 +1,15 @@
+/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%; /* Muy importante */
+  overflow-x: hidden; /* Evita scroll horizontal si no es deseado */
+}
+
+#root { /* Asegura que el div raíz de React también tome toda la altura */
+  height: 100%;
+}

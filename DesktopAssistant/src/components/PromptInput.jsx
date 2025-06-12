@@ -7,7 +7,6 @@ function PromptInput({ onResponse }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!prompt.trim()) return
-    // Send the prompt to the backend at '/api/ask' which calls answer_query from rag.py
     setLoading(true)
     try {
       const res = await fetch('/api/ask', {
@@ -16,28 +15,33 @@ function PromptInput({ onResponse }) {
         body: JSON.stringify({ prompt })
       })
       const data = await res.json()
-      onResponse(data.answer)
+      onResponse(prompt, data.answer)
     } catch (error) {
-      onResponse("Error retrieving answer.")
+      onResponse(prompt, "Error retrieving answer.")
     }
+    setPrompt("")
     setLoading(false)
   }
 
   return (
     <form className="mb-6" onSubmit={handleSubmit}>
       <textarea
-        className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        rows="4"
-        placeholder="Enter your prompt here..."
+        className="w-full bg-[#2d2d2d] text-white p-3 rounded-xl border border-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed"
+        placeholder="Escribe tu mensaje..."
         value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
+        onChange={(e) => {
+          setPrompt(e.target.value);
+          e.target.style.height = 'auto';         // reset height
+          e.target.style.height = `${e.target.scrollHeight}px`; // set to scroll height
+        }}
+        rows={1}
       />
       <button
         type="submit"
         className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-md"
         disabled={loading}
       >
-        {loading ? "Sending..." : "Submit"}
+        {loading ? "Sending..." : "Send"}
       </button>
     </form>
   )

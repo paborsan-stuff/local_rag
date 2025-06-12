@@ -20,7 +20,7 @@ async def ask(request: Request):
     if not prompt:
         return {"error": "No se proporcionó prompt."}
     top_score, retrieved_docs, answer = answer_query(prompt)
-    return {"answer": f"Documento: {top_score}\n\Contenido: {retrieved_docs}\n\n{answer}\n"}
+    return {"answer": f"Documento: {top_score}\n\nContenido: {retrieved_docs}\n\n{answer}\n"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
