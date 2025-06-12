@@ -1,5 +1,4 @@
 import re
-import os
 import uuid
 from transformers import AutoTokenizer, AutoModel
 
@@ -8,7 +7,7 @@ class Chunker:
 
     PARAGRAPH_SEPARATOR = "\n\n"
 
-    def __init__(self, tokenizer=None, chunk_delimiter=3, paragraph_separator_regex="", chunk_word_delimiter_regex="", input_text = ""):
+    def __init__(self, tokenizer=None, chunk_delimiter=24, overlap_tokens=5, paragraph_separator_regex="", chunk_word_delimiter_regex="", input_text = ""):
         """
         Initializes the Chunker with a Hugging Face tokenizer, a target chunk size,
         and configurable regex delimiters for text splitting.
@@ -25,9 +24,10 @@ class Chunker:
         if input_text == None:
             raise TypeError  ("Bad init, input text is empty")
 
+        self.overlap_tokens = overlap_tokens
         self.input = input_text
         self.chunk_delimiter = chunk_delimiter
-        self.tokenizer = tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
 
     def _get_token_count(self, text: str) -> int:
         """
@@ -78,25 +78,129 @@ class Chunker:
 
         return final_chunks
 
+    # def _paragraph_chunker(self, paragraph: str, delimiter: str):
+    #     """
+    #     Splits a given text into chunks based on a regex delimiter and a maximum token limit.
+
+    #     Args:
+    #         text (str): The input text to chunk.
+    #         delimiter_regex (re.Pattern): The compiled regex pattern to split the text by.
+
+    #     Returns:
+    #         list[str]: A list of text chunks.
+    #     """
+    #     words = paragraph.split(delimiter)
+    #     current_chunk = ""
+
+    #     tokenized = self.tokenizer.tokenize(paragraph)
+
+    #     chunked_tokens = self.slice_array_by_size_loop(tokenized, self.chunk_delimiter)
+
+    #     return self.assign_tokens(chunked_tokens)
+    
     def _paragraph_chunker(self, paragraph: str, delimiter: str):
-        """
-        Splits a given text into chunks based on a regex delimiter and a maximum token limit.
+        if not paragraph.strip():
+            return {}
 
-        Args:
-            text (str): The input text to chunk.
-            delimiter_regex (re.Pattern): The compiled regex pattern to split the text by.
-
-        Returns:
-            list[str]: A list of text chunks.
-        """
+        # Fase 1: Primera división basada en palabras (max_tokens)
         words = paragraph.split(delimiter)
-        current_chunk = ""
+        current_text_chunk = "" 
+        temp_word_chunks = [] 
 
-        tokenized = self.tokenizer.tokenize(paragraph)
+        for word in words:
+            text_with_new_word = current_text_chunk + (delimiter if current_text_chunk else '') + word
 
-        chunked_tokens = self.slice_array_by_size_loop(tokenized, self.chunk_delimiter)
+            if self._get_token_count(text_with_new_word) <= self.chunk_delimiter:
+                current_text_chunk = text_with_new_word
+            else:
+                if current_text_chunk: 
+                    temp_word_chunks.append(current_text_chunk)
+                current_text_chunk = word
 
-        return self.assign_tokens (chunked_tokens)
+        if current_text_chunk:
+            temp_word_chunks.append(current_text_chunk)
+
+        # Fase 2: Refinamiento de chunks si son demasiado grandes
+        refined_token_chunks = []
+
+        for chunk_text in temp_word_chunks:
+            chunk_tokens = self.tokenizer.tokenize(chunk_text)
+
+            if len(chunk_tokens) > self.chunk_delimiter:
+                sub_chunks_text = re.split(self.secondary_chunking_regex, chunk_text)
+                
+                current_sub_chunk_tokens = []
+                current_sub_chunk_text = "" 
+
+                for sub_chunk_part in sub_chunks_text:
+                    if not sub_chunk_part.strip():
+                        continue
+
+                    full_part_text = sub_chunk_part
+                    match = re.search(self.secondary_chunking_regex, chunk_text[chunk_text.find(sub_chunk_part) + len(sub_chunk_part):])
+                    if match:
+                         full_part_text += match.group(0)
+
+                    test_text = current_sub_chunk_text + full_part_text
+                    test_tokens = self.tokenizer.tokenize(test_text)
+
+                    if len(test_tokens) <= self.chunk_delimiter:
+                        current_sub_chunk_text = test_text
+                        current_sub_chunk_tokens = test_tokens
+                    else:
+                        if current_sub_chunk_tokens:
+                            refined_token_chunks.append(current_sub_chunk_tokens)
+
+                        if len(self.tokenizer.tokenize(full_part_text)) > self.chunk_delimiter:
+                             oversized_part_tokens = self.tokenizer.tokenize(full_part_text)
+                             sliced_oversized = self.slice_array_by_size_loop(oversized_part_tokens, self.chunk_delimiter)
+                             refined_token_chunks.extend(sliced_oversized)
+                             current_sub_chunk_tokens = [] 
+                             current_sub_chunk_text = ""
+                        else:
+                            current_sub_chunk_text = full_part_text
+                            current_sub_chunk_tokens = self.tokenizer.tokenize(full_part_text)
+
+                if current_sub_chunk_tokens:
+                    refined_token_chunks.append(current_sub_chunk_tokens)
+            else:
+                refined_token_chunks.append(chunk_tokens)
+
+        # Fase 3: Aplicar solapamiento (Overlap)
+        final_processed_token_chunks = []
+
+        if self.overlap_tokens > 0 and len(refined_token_chunks) > 1:
+            for i in range(len(refined_token_chunks)):
+                current_chunk = refined_token_chunks[i]
+                
+                final_processed_token_chunks.append(current_chunk)
+
+                if i < len(refined_token_chunks) - 1:
+                    next_chunk = refined_token_chunks[i+1]
+
+                    overlap_from_current = current_chunk[-min(self.overlap_tokens, len(current_chunk)):]
+
+                    overlap_into_next = next_chunk[:min(self.overlap_tokens, len(next_chunk))]
+                    combined_overlap_tokens = overlap_from_current + next_chunk
+                    
+                    if len(combined_overlap_tokens) > self.chunk_delimiter:
+
+                        overlap_tokens_combined = []
+                        
+                        overlap_tokens_combined.extend(current_chunk[-min(self.overlap_tokens, len(current_chunk)):])
+
+                        remaining_space = self.chunk_delimiter - len(overlap_tokens_combined)
+                        if remaining_space > 0:
+                            overlap_tokens_combined.extend(next_chunk[:min(remaining_space, len(next_chunk))])
+
+                        if overlap_tokens_combined:
+                            final_processed_token_chunks.append(overlap_tokens_combined)
+
+            pass
+        else:
+            final_processed_token_chunks = refined_token_chunks
+
+        return self.assign_tokens(final_processed_token_chunks)
     
     def process_paragraphs(self):
         """
@@ -114,5 +218,7 @@ class Chunker:
         paragraphs = self.input.split(self.PARAGRAPH_SEPARATOR)
         for paragraph in paragraphs:
             final_chunks.update(self._paragraph_chunker(paragraph, " "))
+
+        print(final_chunks)
 
         return final_chunks
