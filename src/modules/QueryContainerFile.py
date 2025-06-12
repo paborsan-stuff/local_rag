@@ -38,12 +38,22 @@ class QueryContainer:
         return vector_store
 
     def retrieval_llm_response(self, query_str):
-        retrieved_docs = self.process_query_str(query_str)
+        top_score, retrieved_docs = self.process_query_str(query_str)
 
         # Prepare LLM prompt
         system_prompt = """
-        You are an intelligent search engine. You will be provided with some retrieved context, as well as the users query.
-        Your job is to understand the request, and answer based on the retrieved context.
+        You are an intelligent document analysis assistant.
+
+        Your role is to carefully read the provided context (extracted from one or more documents) and understand the user's prompt in relation to that context.
+
+        Only use the information available in the provided context.  
+        Do not guess, invent, or add any external information.  
+        If the answer cannot be derived from the context, state that clearly.  
+        You may provide a very light interpretation or opinion if relevant, but keep it objective and brief.
+
+        Your response should be clear, concise, and grounded in the text.
+
+        The context and user question will follow.
         """
 
         local_dir = self.cache_dir + "/llm"
@@ -67,18 +77,15 @@ class QueryContainer:
 
         response = instance_model.stream_and_buffer_response(base_prompt=llm_prompt, max_tokens=800)
 
-        return response
+        return response, top_score, retrieved_docs
 
 
     def process_query_str(self, query_str):
         query_str_embedding = np.array(self.emb_mdl.compute_embeddings(query_str))
-        print(self.doc_id_map)
 
         top_score, middle_score, last_score = self.find_db_vector_best_dot_score(query_str_embedding, top_k=3)
         retrieved_docs = self.doc_id_map[top_score[0]][top_score[1]]['text']
-        print("Documento: ", top_score[0])
-        print("Chunk: ", retrieved_docs)
-        return retrieved_docs
+        return top_score, retrieved_docs
 
 
     def get_query_vector_store_db(self, doc_id_map, use_cache):

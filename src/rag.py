@@ -30,11 +30,13 @@ def answer_query(prompt: str) -> str:
     Function for testing the connection.
     This version is hardcoded to return "Testing".
     """
+    top_score, retrieved_docs, response = main(prompt)
+
     # This function is called from api_server.py to get the response that will be sent to the UI.
-    return "Testing"
+    return top_score, retrieved_docs, response
 
 
-def main():
+def main(prompt):
 
     project_root = os.path.dirname(os.path.abspath(__file__))  # …/src
     tmp_dir      = os.path.join(project_root, "tmp")
@@ -50,11 +52,18 @@ def main():
     query_container = QueryContainer(docs, file_names, args, cache_dir=tmp_dir)
     query_container.compute_get_vector_store(rag_param)
     
-    query_str = ("Muéstrame un reclinador lujoso")
+    query_str = (prompt)
 
-    llm_response = query_container.retrieval_llm_response(query_str)
+    llm_response, top_score, retrieved_docs = query_container.retrieval_llm_response(query_str)
+    top_score = top_score[0]
+    print(top_score)
+    print(retrieved_docs)
     print(llm_response)
 
 
+
+    return top_score, retrieved_docs, llm_response
+
+
 if __name__ == "__main__":
-    main()
+    main("I want a refrigerator designed to fit under counters")

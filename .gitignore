@@ -3,3 +3,5 @@ auto_gen/
 tmp/
 test.txt
 vdb/
+node_modules
+package-lock.json
