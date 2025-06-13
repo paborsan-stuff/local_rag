@@ -1,6 +1,7 @@
 import os
 from modules.QueryContainerFile import QueryContainer
 import argparse
+import regex as re
 from modules.ConvenienceFunctions import Convenience
 
 
@@ -30,10 +31,10 @@ def answer_query(prompt: str) -> str:
     Function for testing the connection.
     This version is hardcoded to return "Testing".
     """
-    top_score, retrieved_docs, response = main(prompt)
+    top_score, retrieved_docs, llm_response, normal_chat_llm, rag_search = main(prompt)
 
     # This function is called from api_server.py to get the response that will be sent to the UI.
-    return top_score, retrieved_docs, response
+    return top_score, retrieved_docs, llm_response, normal_chat_llm, rag_search
 
 
 def main(prompt):
@@ -53,16 +54,25 @@ def main(prompt):
     
     query_str = (prompt)
 
-    llm_response, top_score, retrieved_docs = query_container.retrieval_llm_response(query_str)
-    top_score = top_score[0]
+    normal_chat_llm = query_container.rag_or_chat(query_str)
+    rag_search = re.search(r'\bRAG\b', normal_chat_llm)
+
+    if rag_search:
+        llm_response, top_score, retrieved_docs = query_container.retrieval_llm_response(query_str)
+        top_score = top_score[0]
+
+    else:
+        top_score = ""
+        retrieved_docs = ""
+        llm_response = ""
+
+    print(normal_chat_llm)
     print(top_score)
     print(retrieved_docs)
     print(llm_response)
 
-
-
-    return top_score, retrieved_docs, llm_response
+    return top_score, retrieved_docs, llm_response, normal_chat_llm, rag_search
 
 
 if __name__ == "__main__":
-    main("three-seater")
+    main("Could you find a red couch?")

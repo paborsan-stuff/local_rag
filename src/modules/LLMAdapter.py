@@ -45,6 +45,23 @@ class LLMAdapter:
         """
         prompt = f"""{system_prompt}Here is the retrieved context:{retrieved_docs}Here is the user's query:{user_query}"""
         return prompt
+    
+    @staticmethod
+    def construct_chatting_prompt(system_prompt: str, user_query: str) -> str:
+        """
+        Constructs a formatted prompt string for the LLM, combining system instructions,
+        retrieved context, and the user's query.
+
+        Args:
+            system_prompt (str): High-level instructions or persona for the LLM.
+            retrieved_docs (str): The relevant context retrieved from a document store.
+            user_query (str): The user's specific question or request.
+
+        Returns:
+            str: The complete, formatted prompt string.
+        """
+        prompt = f"""{system_prompt} Here is the user's chat:{user_query}"""
+        return prompt
 
 
     def stream_and_buffer_response(self,
