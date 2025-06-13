@@ -6,12 +6,18 @@ from llama_cpp import Llama
 from huggingface_hub import hf_hub_download
 from modules.LLMAdapter import LLMAdapter
 from modules.Chunker import Chunker
+from modules.FileIntegrityChecker import FileIntegrityChecker
 
 class QueryContainer:
     def __init__(self, docs, file_names, args, cache_dir):
 
         self.cache_dir = cache_dir
-        self.emb_mdl = EmbeddingGenerator(cache_dir)
+
+        hash_dir      = self.cache_dir + "/TestData"
+        self.tmp_dir  = os.path.join(self.cache_dir, "tmp")
+
+        self.emb_mdl = EmbeddingGenerator(self.tmp_dir)
+        self.integrity = FileIntegrityChecker(hash_dir, hash_file="vdb/hashes.json", algorithm="md5")
         self.docs = docs
         self.file_names = file_names
         self.args = args
@@ -22,12 +28,25 @@ class QueryContainer:
 
         doc_id_map = {}
 
-        for doc, file_name in zip(self.docs, self.file_names):
-            mdl_chunker = Chunker(rag_param["embedding_model"], input_text=doc)
-            chunks = mdl_chunker.process_paragraphs()
-            doc_id_map[file_name] = chunks
-    
-        vector_store = self.get_query_vector_store_db(doc_id_map, self.args.use_cache)
+        if os.path.isfile("vdb/doc_id_map.json"):
+            if os.path.isfile("vdb/vector_db.json"):
+                if self.integrity.check_integrity():
+                    with open("vdb/doc_id_map.json", "r", encoding="utf-8") as f:
+                        doc_id_map = json.load(f)
+                        print("doc_id_map loaded")
+                    with open("vdb/vector_db.json", "r", encoding="utf-8") as f:
+                        vector_store = json.load(f)
+                        print("vector store loaded")
+            
+            else:
+                print("Hash File does not exist")
+                doc_id_map = self._doc_id_compute(rag_param, doc_id_map)
+                vector_store = self.get_query_vector_store_db(doc_id_map, self.args.use_cache)
+
+        if self.integrity.check_integrity() == False:
+            print("No doc_id_map defined, creating...")
+            doc_id_map = self._doc_id_compute(rag_param, doc_id_map)
+            vector_store = self.get_query_vector_store_db(doc_id_map, self.args.use_cache)
 
         if not vector_store:
             raise ValueError("Empty Vector data base")
@@ -37,9 +56,20 @@ class QueryContainer:
 
         return vector_store
 
-    def retrieval_llm_response(self, query_str):
-        top_score, retrieved_docs = self.process_query_str(query_str)
+    def _doc_id_compute(self, rag_param, doc_id_map):
+        for doc, file_name in zip(self.docs, self.file_names):
+            mdl_chunker = Chunker(rag_param["embedding_model"], input_text=doc)
+            chunks = mdl_chunker.process_paragraphs()
+            doc_id_map[file_name] = chunks
+        
+        with open('vdb/doc_id_map.json', 'w') as f:
+            json.dump(doc_id_map, f, indent=2)
 
+        self.integrity.save_hashes()
+        
+        return doc_id_map
+
+    def retrieval_llm_response(self, query_str):
         # Prepare LLM prompt
         system_prompt = """
         You are an intelligent document analysis assistant.
@@ -56,7 +86,8 @@ class QueryContainer:
         The context and user question will follow.
         """
 
-        local_dir = self.cache_dir + "/llm"
+        local_dir = self.tmp_dir + "/llm"
+        top_score, retrieved_docs = self.process_query_str(query_str)
 
         # 1. Descarga del modelo (sin usar symlinks)
         model_path = hf_hub_download(
@@ -78,12 +109,58 @@ class QueryContainer:
         response = instance_model.stream_and_buffer_response(base_prompt=llm_prompt, max_tokens=800)
 
         return response, top_score, retrieved_docs
+    
+    def normal_chat_llm(self, query_str):
+        # Prepare LLM prompt
+        system_prompt = """
+            Eres un asistente inteligente. A veces el usuario solo quiere conversar contigo de forma casual o hacer preguntas generales. Otras veces, quiere buscar información específica dentro de uno o más documentos.
+
+            A continuación recibirás:
+            - Un posible contexto extraído de documentos (`contexto`)
+            - Una pregunta o comentario del usuario (`consulta`)
+
+            Tu tarea es la siguiente:
+
+            1. Si la consulta es una pregunta general o una conversación informal (por ejemplo: saludos, preguntas sobre ti, temas generales), **ignora por completo el contexto** y responde naturalmente con tu conocimiento interno.
+
+            2. Si la consulta claramente requiere buscar información en documentos (por ejemplo: "¿qué dice el contrato sobre devoluciones?", "según el archivo", "en el texto dice..."), entonces:
+            - Lee cuidadosamente el contexto.
+            - Responde con base exclusivamente en la información que aparece en él.
+            - Si no puedes responder con seguridad usando el contexto, indícalo claramente.
+
+            No inventes información ni uses conocimiento externo cuando uses el contexto.  
+            Tu respuesta debe ser clara, objetiva y precisa.
+        """
+
+        local_dir = self.tmp_dir + "/llm"
+        #top_score, retrieved_docs = self.process_query_str(query_str)
+
+        # 1. Descarga del modelo (sin usar symlinks)
+        model_path = hf_hub_download(
+            repo_id="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+            filename="mistral-7b-instruct-v0.2.Q3_K_L.gguf",
+            local_dir=local_dir,
+            local_dir_use_symlinks=False
+        )
+
+        llm = Llama(model_path=model_path, n_gpu_layers=10)
+        instance_model = LLMAdapter(llm)
+
+        llm_prompt = LLMAdapter.construct_prompt_conversation(
+            system_prompt=system_prompt,
+            user_query=query_str
+        )
+
+        response = instance_model.stream_and_buffer_response(base_prompt=llm_prompt, max_tokens=800)
+
+        return response#, top_score, retrieved_docs
 
 
     def process_query_str(self, query_str):
         query_str_embedding = np.array(self.emb_mdl.compute_embeddings(query_str))
 
         top_score, middle_score, last_score = self.find_db_vector_best_dot_score(query_str_embedding, top_k=3)
+        print(top_score)
         retrieved_docs = self.doc_id_map[top_score[0]][top_score[1]]['text']
         return top_score, retrieved_docs
 
@@ -93,17 +170,15 @@ class QueryContainer:
         vector_store = {}
 
         if use_cache == False:
-            #vector_store = create_vector_store(emb_mdl, doc_id_map, vector_store)
             vector_store = self.compute_creation_vector_store(doc_id_map)
             os.makedirs(os.path.dirname("vdb/vector_db.json"), exist_ok=True)
             with open('vdb/vector_db.json', 'w') as f:
-                json.dump(vector_store, f)
+                json.dump(vector_store, f, indent=2)
         else: 
             with open('vdb/vector_db.json', 'r') as f:
                 try:
                     dbjson = json.load(f)
                     if not dbjson:
-                        #vector_store = create_vector_store(emb_mdl, doc_id_map, vector_store)
                         vector_store = self.compute_creation_vector_store(doc_id_map)
                     else:
                         print("Vector db file cached!")

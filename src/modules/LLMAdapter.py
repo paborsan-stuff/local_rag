@@ -46,6 +46,7 @@ class LLMAdapter:
         prompt = f"""{system_prompt}Here is the retrieved context:{retrieved_docs}Here is the user's query:{user_query}"""
         return prompt
 
+
     def stream_and_buffer_response(self,
                                    base_prompt: str,
                                    max_tokens: int = None,
