@@ -7,7 +7,7 @@ class Chunker:
 
     PARAGRAPH_SEPARATOR = "\n\n"
 
-    def __init__(self, tokenizer=None, chunk_delimiter=24, overlap_tokens=5, paragraph_separator_regex="", chunk_word_delimiter_regex="", input_text = ""):
+    def __init__(self, tokenizer=None, chunk_delimiter=256, overlap_tokens=24, paragraph_separator_regex="", chunk_word_delimiter_regex="", input_text = ""):
         """
         Initializes the Chunker with a Hugging Face tokenizer, a target chunk size,
         and configurable regex delimiters for text splitting.
@@ -218,7 +218,5 @@ class Chunker:
         paragraphs = self.input.split(self.PARAGRAPH_SEPARATOR)
         for paragraph in paragraphs:
             final_chunks.update(self._paragraph_chunker(paragraph, " "))
-
-        print(final_chunks)
-
+            
         return final_chunks

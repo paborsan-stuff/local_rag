@@ -39,7 +39,6 @@ def answer_query(prompt: str) -> str:
 def main(prompt):
 
     project_root = os.path.dirname(os.path.abspath(__file__))  # …/src
-    tmp_dir      = os.path.join(project_root, "tmp")
     setup_rag = Convenience(project_root)
 
     rag_param = setup(setup_rag)
@@ -49,7 +48,7 @@ def main(prompt):
     if args.use_cache == True:
         print ("Using cached vector db")
 
-    query_container = QueryContainer(docs, file_names, args, cache_dir=tmp_dir)
+    query_container = QueryContainer(docs, file_names, args, cache_dir=project_root)
     query_container.compute_get_vector_store(rag_param)
     
     query_str = (prompt)
@@ -66,4 +65,4 @@ def main(prompt):
 
 
 if __name__ == "__main__":
-    main("I want a refrigerator designed to fit under counters")
+    main("three-seater")
