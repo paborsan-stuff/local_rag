@@ -72,18 +72,14 @@ class QueryContainer:
     def retrieval_llm_response(self, query_str):
         # Prepare LLM prompt
         system_prompt = """
-        You are an intelligent document analysis assistant.
+            You are an intelligent document analysis assistant.
 
-        Your role is to carefully read the provided context (extracted from one or more documents) and understand the user's prompt in relation to that context.
+            You will receive a user query and a block of context extracted from one or more documents.
 
-        Only use the information available in the provided context.  
-        Do not guess, invent, or add any external information.  
-        If the answer cannot be derived from the context, state that clearly.  
-        You may provide a very light interpretation or opinion if relevant, but keep it objective and brief.
+            Your job is to answer the user's query based **only on the context provided** in a natural way.
 
-        Your response should be clear, concise, and grounded in the text.
+            Always answer. Never remain silent.
 
-        The context and user question will follow.
         """
 
         local_dir = self.tmp_dir + "/llm"
@@ -92,7 +88,7 @@ class QueryContainer:
         # 1. Descarga del modelo (sin usar symlinks)
         model_path = hf_hub_download(
             repo_id="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
-            filename="mistral-7b-instruct-v0.2.Q3_K_L.gguf",
+            filename="mistral-7b-instruct-v0.2.Q4_K_M.gguf",
             local_dir=local_dir,
             local_dir_use_symlinks=False
         )
@@ -110,26 +106,30 @@ class QueryContainer:
 
         return response, top_score, retrieved_docs
     
-    def normal_chat_llm(self, query_str):
+    def rag_or_chat(self, query_str):
         # Prepare LLM prompt
         system_prompt = """
-            Eres un asistente inteligente. A veces el usuario solo quiere conversar contigo de forma casual o hacer preguntas generales. Otras veces, quiere buscar información específica dentro de uno o más documentos.
+            You are an assistant that must choose only one of two possible actions based on the user's query.
 
-            A continuación recibirás:
-            - Un posible contexto extraído de documentos (`contexto`)
-            - Una pregunta o comentario del usuario (`consulta`)
+            You will receive:
 
-            Tu tarea es la siguiente:
+                A query from the user
+                An optional context (text extracted from documents)
 
-            1. Si la consulta es una pregunta general o una conversación informal (por ejemplo: saludos, preguntas sobre ti, temas generales), **ignora por completo el contexto** y responde naturalmente con tu conocimiento interno.
+            Your rules:
 
-            2. Si la consulta claramente requiere buscar información en documentos (por ejemplo: "¿qué dice el contrato sobre devoluciones?", "según el archivo", "en el texto dice..."), entonces:
-            - Lee cuidadosamente el contexto.
-            - Responde con base exclusivamente en la información que aparece en él.
-            - Si no puedes responder con seguridad usando el contexto, indícalo claramente.
+                1.- If the query is general conversation reply naturally witouth inventing things.
+                2.- If the query asks for something inside the documents (e.g., “according to the text”, “find”, “what does it say in the file”), then do not answer the question. Just reply exactly like this:
+                RAG: [keywords]
+                Use English keywords based on the query and context.
 
-            No inventes información ni uses conocimiento externo cuando uses el contexto.  
-            Tu respuesta debe ser clara, objetiva y precisa.
+            You must always choose only one:
+
+                If rule 1 respond naturally,
+                If rule 2 respond only with RAG: [keywords] (if it’s document-related).
+                Never mix both. Never ask the user to clarify.
+
+            You must always reply.
         """
 
         local_dir = self.tmp_dir + "/llm"
@@ -138,7 +138,7 @@ class QueryContainer:
         # 1. Descarga del modelo (sin usar symlinks)
         model_path = hf_hub_download(
             repo_id="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
-            filename="mistral-7b-instruct-v0.2.Q3_K_L.gguf",
+            filename="mistral-7b-instruct-v0.2.Q4_K_M.gguf",
             local_dir=local_dir,
             local_dir_use_symlinks=False
         )
@@ -146,7 +146,7 @@ class QueryContainer:
         llm = Llama(model_path=model_path, n_gpu_layers=10)
         instance_model = LLMAdapter(llm)
 
-        llm_prompt = LLMAdapter.construct_prompt_conversation(
+        llm_prompt = LLMAdapter.construct_chatting_prompt(
             system_prompt=system_prompt,
             user_query=query_str
         )

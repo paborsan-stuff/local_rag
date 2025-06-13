@@ -38,7 +38,7 @@ class Convenience:
         target_dir = self.cache_dir + "/tmp/llm"
         os.makedirs(target_dir, exist_ok=True)
 
-        filename = "mistral-7b-instruct-v0.2.Q3_K_L.gguf"
+        filename = "mistral-7b-instruct-v0.2.Q4_K_M.gguf"
         local_path = os.path.join(target_dir, filename)
 
         if not os.path.exists(local_path):

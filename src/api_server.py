@@ -18,9 +18,14 @@ async def ask(request: Request):
     body = await request.json()
     prompt = body.get("prompt")
     if not prompt:
-        return {"error": "No se proporcionó prompt."}
-    top_score, retrieved_docs, answer = answer_query(prompt)
-    return {"answer": f"Documento: {top_score}\n\nContenido: {retrieved_docs}\n\n{answer}\n"}
+        return {"error": "No prompt given."}
+    top_score, retrieved_docs, llm_response, normal_chat_llm, rag_search  = answer_query(prompt)
+    if rag_search:
+        return {"answer": f"Document: {top_score}\n\nContent: {retrieved_docs}\n\n{llm_response}\n"}
+    
+    else:
+        return {"answer": f"{normal_chat_llm}"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
