@@ -21,7 +21,7 @@ async def ask(request: Request):
         return {"error": "No prompt given."}
     top_score, retrieved_docs, llm_response, normal_chat_llm, rag_search  = answer_query(prompt)
     if rag_search:
-        return {"answer": f"Document: {top_score}\n\nContent: {retrieved_docs}\n\n{llm_response}\n"}
+        return {"answer": f"Document: {top_score}\n\n{llm_response}\n"}
     
     else:
         return {"answer": f"{normal_chat_llm}"}
